@@ -1,12 +1,12 @@
 package assembler.mnemonics;
 
-import assembler.AssembleableOperation;
+import assembler.AssembleOperation;
 import assembler.Assembler;
 import assembler.tables.symboltable.Symbol;
 import assembler.tables.symboltable.SymbolTable;
 import assembler.utils.AssemblerUtils;
 
-public abstract class Operation implements AssembleableOperation {
+public abstract class Operation implements AssembleOperation {
     public static final String  AX_STR = "AX";
     public static final String DX_STR = "DX";
     public static final String SI_STR = "SI";

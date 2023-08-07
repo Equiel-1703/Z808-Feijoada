@@ -1,6 +1,6 @@
 package assembler.codeprocessors;
 
-import assembler.AssembleableOperation;
+import assembler.AssembleOperation;
 import assembler.tables.CodeTable;
 import assembler.utils.AssemblerUtils;
 
@@ -17,7 +17,7 @@ public class OperationProcessor {
         if (!codeTable.isValidOperation(tokens[0]))
             return false;
 
-        AssembleableOperation op = codeTable.getOperation(tokens[0]);
+        AssembleOperation op = codeTable.getOperation(tokens[0]);
         op.assemble(line);
         return true;
     }

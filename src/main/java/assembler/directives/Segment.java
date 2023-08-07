@@ -1,12 +1,11 @@
 package assembler.directives;
 
-import assembler.AssembleableOperation;
-import assembler.tables.symboltable.Symbol;
+import assembler.AssembleOperation;
 import assembler.tables.symboltable.SymbolTable;
 import assembler.utils.AssemblerUtils;
 import assembler.Assembler;
 
-public class Segment implements AssembleableOperation {
+public class Segment implements AssembleOperation {
     public static final String MNEMONIC = "SEGMENT";
     private final SymbolTable symbolTable;
 

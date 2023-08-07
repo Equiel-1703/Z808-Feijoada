@@ -1,7 +1,6 @@
 package assembler.mnemonics.arithmetical;
 
 import assembler.Assembler;
-import assembler.AssembleableOperation;
 import assembler.mnemonics.Operation;
 import assembler.utils.AssemblerUtils;
 

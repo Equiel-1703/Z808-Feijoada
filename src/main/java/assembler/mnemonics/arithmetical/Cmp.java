@@ -3,7 +3,6 @@ package assembler.mnemonics.arithmetical;
 import assembler.Assembler;
 import assembler.mnemonics.Operation;
 import assembler.utils.AssemblerUtils;
-import assembler.AssembleableOperation;
 
 import java.util.LinkedList;
 public class Cmp extends Operation{
