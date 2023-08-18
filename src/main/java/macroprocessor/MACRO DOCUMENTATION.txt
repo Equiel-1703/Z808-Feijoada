@@ -1,0 +1,59 @@
+PROCESSADOR DE MACROS COM ESCOPO
+
+Algoritmo idealizado por Henrique Rodrigues - mais conhecido como Rei Delas ou Salomão dos Computers.
+
+Funcionamento:
+
+A ideia é realizar um processador de N passadas. Onde cada passada é dividida em duas etapas:
+
+ETAPA 1: processamento de declarações
+ETAPA 2: expansões
+
+ETAPA 1:
+
+Todas as definições mais externas de MACRO são processadas (aninhamento 1).
+
+Ao encontrar uma definição de MACRO dentro da MACRO mais externa que está sendo processada (situação de aninhamento), uma flag
+de aninhamento no processador de macros é setada (isso indica que ele terá que fazer mais uma passada para resolver o aninhamento)
+e a MACRO interna e todas as suas chamadas DENTRO DO ESCOPO DA MACRO EXTERNA seguirão uma política de renomeação da seguinte forma:
+
+NOME_MACRO_EXTERNA#NOME_MACRO_INTERNA
+
+Dessa forma conseguimos saber quem é a MACRO-Pai dessa macro aninhada na passada posterior para resolver os escopos. Isso também
+permite validar chamadas de macros aninhadas inválidas (sem chamar a pai primeiro).
+
+Se o usuário desejar chamar uma macro que está aninhada, ele deverá usar a seguinte sintaxe:
+
+NOME_MACRO_EXTERNA.NOME_MACRO_INTERNA
+
+Isso foi inspirado no mecanismo de classe interna do Java.
+
+Esse algoritmo permite redefinição de MACROS. Ele sempre manterá a última declaração salva para uma MACRO com o mesmo identificador
+no mesmo escopo. Se forem o mesmo identificador mas em escopos diferentes não ocorrerá erro devido à politica de renomeação para
+macros aninhadas.
+
+ETAPA 2:
+
+O Processador de Macros vai manter um contador de nível de aninhamento interno (começando em 1) e acada passada ele incrementa uma
+unidade.
+
+Cada chamada de macro do nível atual do PM será substituído pelo código salvo dessa macro num HashMap.
+
+A cada chamada de macro aninhada, o PM vai substituir os pontos por "#" e calcular o nível de aninhamento (contar número de pontos
++ 1). Se a chamada for do nível atual ele vai tentar expandir, pois ele já fez o processamento das declarações desse nível na ETAPA 1.
+
+Se não for possível expandir porque a macro não existe na tabela e o contador de aninhamento for 0, então essa Macro não foi declarada.
+Se não for possível expandir porque a macro não existe na tabela e o contador de aninhamento for diferente de 0, então alguma macro
+pai da hierarquia não foi chamada antes para declará-la.
+
+
+M1 MACRO P1
+	ADD AX, P1
+	
+	M2 MACRO P2
+		ADD AX, P1
+		SUB AX, P2
+	ENDM
+
+	CALL M2
+ENDM
