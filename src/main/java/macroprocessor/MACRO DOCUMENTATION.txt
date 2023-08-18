@@ -193,9 +193,8 @@ Esse algoritmo permite redefinição de MACROS. Ele sempre manterá a última de
 no mesmo escopo. Se forem o mesmo identificador mas em escopos diferentes não ocorrerá erro devido à politica de renomeação para
 macros aninhadas.
 
-Se não for possível expandir porque a macro não existe na tabela e o contador de aninhamento for 0, então essa Macro não foi declarada.
-Se não for possível expandir porque a macro não existe na tabela e o contador de aninhamento for diferente de 0, então alguma macro
-pai da hierarquia não foi chamada antes para declará-la.
+Se não for possível expandir porque a macro não existe na tabela e ela não contém "#", então essa Macro não foi declarada.
+Se não for possível expandir porque a macro não existe na tabela e ela contém "#", então alguma macro pai não foi declarada.
 
 
 M1 MACRO P1
