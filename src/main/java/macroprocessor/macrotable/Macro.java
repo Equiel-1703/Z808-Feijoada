@@ -1,44 +1,53 @@
 package macroprocessor.macrotable;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+
 public class Macro {
     private final String macroName;
-    private final String macroCode;
-    private final String[] paramters;
-    private final int alignmentLevel;
-    private Macro parentMacro;
-    private boolean wasCalled = false;
+    private final LinkedList<String> macroCode;
+    private final ArrayList<String> formalParameters;
+    private String[] realParameters;
+    private final boolean isNamedByUser;
 
-    public Macro(String macroName, String macroCode, String[] parameters, int alignmentLevel) {
+    public Macro(String macroName, LinkedList<String> macroCode, ArrayList<String> formalParameters, boolean isNamedByUser) {
         this.macroName = macroName;
-        this.macroCode = macroCode;
-        this.paramters = parameters;
-        this.alignmentLevel = alignmentLevel;
+
+        if (formalParameters != null)
+            this.formalParameters = (ArrayList<String>) formalParameters.clone();
+        else
+            this.formalParameters = null;
+
+        this.macroCode = (LinkedList<String>) macroCode.clone();
+        this.isNamedByUser = isNamedByUser;
     }
 
-    public Macro(String macroName, String macroCode, String[] parameters, int alignmentLevel, Macro parentMacro) {
+    public Macro(String macroName, boolean isNamedByUser) {
         this.macroName = macroName;
-        this.macroCode = macroCode;
-        this.paramters = parameters;
-        this.alignmentLevel = alignmentLevel;
-        this.parentMacro = parentMacro;
-    } 
+        this.isNamedByUser = isNamedByUser;
+        this.formalParameters = null;
+        this.macroCode = null;
+    }
 
     public String getIdentification() {
         return macroName;
     }
 
-    public String getMacroCode() {
+    public LinkedList<String> getMacroCode() {
         return macroCode;
     }
 
-    public String[] getParamters() { return paramters;}
+    public ArrayList<String> getFormalParameters() {
+        return formalParameters;
+    }
 
-    public Macro getParentMacro() {return parentMacro;}
+    public boolean isNamedByUser() {
+        return isNamedByUser;
+    }
 
-    public int getAlignmentLevel() {return alignmentLevel;}
+    public LinkedList<String> processRealParameters(ArrayList<String> realParameters) {
+        return null;
+    }
 
-    public void setWasCalled() { this.wasCalled = true; }
-
-    public boolean getWasCalled() { return this.wasCalled; }
 
 }

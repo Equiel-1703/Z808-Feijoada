@@ -56,8 +56,16 @@ public class Assembler {
     }
 
     public void assembleFile(String pathToProgram) throws Exception {
-        // Handling macros and returns intermediate file path to new file soo we do not change user one
-        pathToProgram = macroProcessor.parseMacros(pathToProgram);
+        try {
+            // Handling macros and returns intermediate file path to new file soo we do not change user one
+            pathToProgram = macroProcessor.parseMacros(pathToProgram);
+        } catch (Exception e) {
+            Logger.getInstance().addLog(new Log(LogType.ERROR, lineCounter, "ERROR ON MACRO PROCESSOR\n"));
+            Logger.getInstance().printLogs();
+            resetAssembler();
+            return;
+        }
+
         FileReader fileReader = new FileReader(pathToProgram);
         Logger.getInstance().reset();
 
