@@ -3,9 +3,10 @@ package macroprocessor;
 import assembler.Log;
 import assembler.LogType;
 import assembler.Logger;
-import macroprocessor.macrotable.Macro;
+import macroprocessor.entities.Macro;
 import assembler.utils.AssemblerUtils;
 import macroprocessor.utils.MacroUtils;
+import macroprocessor.utils.PairList;
 
 import java.io.*;
 
@@ -38,6 +39,13 @@ public class MacroProcessor {
         outputLines = new LinkedList<>();
     }
 
+    /**
+     * Process macros from assembly source file and writes the expanded code to a new file with .pre extension.
+     *
+     * @param pathToProgram
+     * @return path to intermediate file
+     * @throws Exception in case of bad sintax or undeclared macro
+     */
     public String parseMacros(String pathToProgram) throws Exception {
         lineCounter = 0;
         Logger.getInstance().reset();
@@ -56,7 +64,7 @@ public class MacroProcessor {
                 }
             }
 
-            // Close file
+            // Close file readers
             fileReader.close();
             fileIO.close();
 
@@ -69,27 +77,27 @@ public class MacroProcessor {
                 String[] tokens = AssemblerUtils.decomposeInTokens(currentLine);
 
                 // Check if it's a macro declaration or macro call
-                if (tokens.length > 1) {
-                    if (tokens[1].equalsIgnoreCase(MACRODEF)) {
-                        // Macro declaration
-                        parseMacroDeclaration();
-                    } else if (tokens[0].equalsIgnoreCase(MACROCALL)) {
-                        // Macro call (expand)
-                        parseMacroCall();
-                    }
+                if (tokens.length > 1 && tokens[1].equalsIgnoreCase(MACRODEF)) {
+                    // Macro declaration
+                    parseMacroDeclaration();
+                } else if (tokens[0].equalsIgnoreCase(MACROCALL)) {
+                    // Macro call (expand)
+                    parseMacroCall();
                 } else {
-                    // Copy line to output (no macro declaration or call)
+                    // Copy line to output (no macro declaration nor call)
                     outputLines.add(currentLine);
                 }
 
                 // Get next line
                 currentLine = inputLines.isEmpty() ? "" : inputLines.pop();
             }
-        } catch (IOException e) {
+        } catch (
+                IOException e) {
             Logger.getInstance().addLog(new Log(LogType.ERROR, lineCounter, "Error while reading " + pathToProgram + "file: " + e.getMessage()));
             resetMacroProcessor();
             throw e;
-        } catch (Exception e) {
+        } catch (
+                Exception e) {
             resetMacroProcessor();
             throw e;
         }
@@ -99,28 +107,42 @@ public class MacroProcessor {
 
         // Writing intermediate file (this will be sent to Assembler)
         OutputStream outputStream = new FileOutputStream(pathToProgram);
-        try (DataOutputStream dataOutStream = new DataOutputStream(outputStream)) {
+        DataOutputStream dataOutStream = new DataOutputStream(outputStream);
+
+        try {
             for (String line : outputLines)
                 dataOutStream.writeBytes(line + "\n");
-        } catch (IOException e) {
+        } catch (
+                IOException e) {
             Logger.getInstance().addLog(new Log(LogType.ERROR, lineCounter, "Error while writing " + pathToProgram + "file: " + e.getMessage()));
             Logger.getInstance().printLogs();
             resetMacroProcessor();
+        } finally {
+            outputStream.close();
+            dataOutStream.close();
         }
 
         // Log success message
-        Logger.getInstance().addLog(new Log(LogType.INFO, 0, "Macros expanded!"));
-        Logger.getInstance().printLogs();
+        Logger.getInstance().
+
+                addLog(new Log(LogType.INFO, 0, "Macros expanded!"));
+        Logger.getInstance().
+
+                printLogs();
 
         return pathToProgram;
     }
 
-    // Macro declaration (MODE 2)
+    /**
+     * Parse macro declaration and add it to macro table.
+     *
+     * @throws Exception
+     */
     private void parseMacroDeclaration() throws Exception {
         // Get all tokens in line
         String[] tokens = AssemblerUtils.decomposeInTokens(this.currentLine);
 
-        // Increment nest level
+        // Increment nest level to 1
         currentMacroNestLevel += 1;
 
         // Ai gustavo no cu nao - Ferrao
@@ -129,31 +151,25 @@ public class MacroProcessor {
         // Semata - Nicolas
 
         // Get macro name
-        String macroName = tokens[0];
+        String outerMacroName = tokens[0];
 
-        // Validate name if this macro was defined by user
-        if (macroTable.containsKey(macroName)) {
-            Macro m = macroTable.get(macroName);
-
-            if (m.isNamedByUser() && !MacroUtils.isValidMacroName(macroName)) {
-                Logger.getInstance().addLog(new Log(LogType.ERROR, lineCounter, "INVALID MACRO NAME: " + macroName));
-                throw new IllegalArgumentException();
-            }
+        // Validate name if this macro was defined by user (it will be named by user if it's not already in macro table)
+        if (!macroTable.containsKey(outerMacroName) && !MacroUtils.isValidMacroName(outerMacroName)) {
+            Logger.getInstance().addLog(new Log(LogType.ERROR, lineCounter, "INVALID MACRO NAME: " + outerMacroName));
+            resetMacroProcessor();
+            throw new IllegalArgumentException();
         }
 
-        // Get formal parameters
-        ArrayList<String> formalParameters;
-        if (tokens.length > 2) {
-            formalParameters = new ArrayList<>(Arrays.stream(tokens, 2, tokens.length).toList());
-        } else {
-            formalParameters = null;
-        }
+        // Get formal parameters if they exist
+        ArrayList<String> formalParameters = extractParametersFromMacro(tokens);
+        // Ignore list (for nested macros)
+        PairList<String, Integer> ignoreList = new PairList<>();
 
         // Create linked list to store macro code
         LinkedList<String> macroCode = new LinkedList<>();
         HashMap<String, String> nestedMacroNames = new HashMap<>();
 
-        // Process macro code
+        // Process macro code until end of macro declaration (endm)
         while (true) {
             // Get next line and its tokens
             currentLine = inputLines.pop();
@@ -163,25 +179,38 @@ public class MacroProcessor {
             if (tokens.length > 1 && tokens[1].equalsIgnoreCase(MACRODEF)) {
                 // Will only add to macro table 2 levels of nesting
                 if (currentMacroNestLevel == 1) {
+                    // Check for valid name before renaming
+                    if (!MacroUtils.isValidMacroName(tokens[0])) {
+                        Logger.getInstance().addLog(new Log(LogType.ERROR, lineCounter, "INVALID MACRO NAME: " + tokens[0]));
+                        resetMacroProcessor();
+                        throw new IllegalArgumentException();
+                    }
+
                     // Rename nested macro
-                    String newNestedMacroName = MacroUtils.renameNestedMacro(macroName, tokens[0]);
+                    String newNestedMacroName = MacroUtils.renameNestedMacro(outerMacroName, tokens[0]);
+                    // Add nested macro declaration to macro code
+                    currentLine = currentLine.replaceFirst(tokens[0], newNestedMacroName);
 
                     // Add to nested macro names, where OldName ->map-> NewName
                     nestedMacroNames.put(tokens[0], newNestedMacroName);
                     // Add to macro table with new name
                     macroTable.put(newNestedMacroName, new Macro(newNestedMacroName, false));
 
-                    // Add nested macro declaration to macro code
-                    currentLine = currentLine.replaceFirst(tokens[0], newNestedMacroName);
+                    // Add its formal parameters to ignoreList
+                    ArrayList<String> newFormalParameters = extractParametersFromMacro(tokens);
+                    for (String fp : newFormalParameters) {
+                        ignoreList.add(fp, currentMacroNestLevel);
+                    }
                 }
 
-                // Add macro declaration to outer macro
+                // Add macro declaration line to outer macro code
                 macroCode.add(currentLine);
                 // Increase nest level
                 currentMacroNestLevel += 1;
+                continue;
             }
             // Check if it is a macro call (validate only to outer macro)
-            else if (tokens.length > 1 && currentMacroNestLevel < 2 && tokens[0].equalsIgnoreCase(MACROCALL)) {
+            else if (tokens.length > 1 && currentMacroNestLevel == 1 && tokens[0].equalsIgnoreCase(MACROCALL)) {
                 // Get name of called macro
                 String macroCalled = tokens[1];
 
@@ -195,6 +224,7 @@ public class MacroProcessor {
                 // Check if called macro exists in macro table
                 if (macroTable.containsKey(macroCalled)) {
                     macroCode.add(currentLine);
+                    continue;
                 }
                 // Calling undeclared macro
                 else {
@@ -203,26 +233,38 @@ public class MacroProcessor {
                     throw new UndeclaredMacro(macroCalled);
                 }
             }
-            // No macro declaration or call
-            else {
-                macroCode.add(currentLine);
-            }
 
             // Check if it is end of macro declaration
             if (tokens[0].equalsIgnoreCase(MACROEND)) {
+                ignoreList.removeAllKeysWithValue(currentMacroNestLevel);
                 currentMacroNestLevel -= 1;
 
                 if (currentMacroNestLevel == 0) {
                     break;
                 }
             }
+            // No nested macro declaration, call or end macro. Just regular code
+            else {
+                // Replace formal parameters with #i
+                for (int i = 0; i < formalParameters.size(); i += 1) {
+                    if (ignoreList.containsKey(formalParameters.get(i)))
+                        continue;
+                    currentLine = currentLine.replaceAll("\\b" + formalParameters.get(i) + "\\b", "#" + i);
+                }
+                macroCode.add(currentLine);
+            }
         }
 
         // Create macro
-        Macro newMacro = new Macro(macroName, macroCode, formalParameters, true);
-        macroTable.put(macroName, newMacro);
+        Macro newMacro = new Macro(outerMacroName, macroCode, formalParameters, true);
+        macroTable.put(outerMacroName, newMacro);
     }
 
+    /**
+     * Parse macro call and expand it.
+     *
+     * @throws UndeclaredMacro
+     */
     private void parseMacroCall() throws UndeclaredMacro {
         // Get all tokens in line
         String[] tokens = AssemblerUtils.decomposeInTokens(this.currentLine);
@@ -231,12 +273,7 @@ public class MacroProcessor {
         String macroName = tokens[1];
 
         // Get real parameters
-        ArrayList<String> realParameters;
-        if (tokens.length > 2) {
-            realParameters = new ArrayList<>(Arrays.stream(tokens, 2, tokens.length).toList());
-        } else {
-            realParameters = null;
-        }
+        ArrayList<String> realParameters = extractParametersFromMacro(tokens);
 
         // Process nested macros calls
         boolean isNestedMacro = false;
@@ -248,9 +285,16 @@ public class MacroProcessor {
         // Check if macro exists
         if (macroTable.containsKey(macroName)) {
             var macroToExpand = macroTable.get(macroName);
+            LinkedList<String> expandedMacro;
 
-            // Expand macro with real parameters
-            var expandedMacro = macroToExpand.processRealParameters(realParameters);
+            try {
+                // Expand macro with real parameters
+                expandedMacro = macroToExpand.processRealParameters(realParameters);
+            } catch (IllegalArgumentException e) {
+                Logger.getInstance().addLog(new Log(LogType.ERROR, lineCounter, e.getMessage() + " IN: \"" + currentLine + "\""));
+                resetMacroProcessor();
+                throw e;
+            }
 
             // Add expanded code in input lines to be processed when back to MODE 1
             while (!expandedMacro.isEmpty()) {
@@ -271,6 +315,17 @@ public class MacroProcessor {
         }
     }
 
+    private ArrayList<String> extractParametersFromMacro(String[] tokens) {
+        if (tokens.length > 2) {
+            return new ArrayList<>(Arrays.stream(tokens, 2, tokens.length).toList());
+        } else {
+            return new ArrayList<>(0);
+        }
+    }
+
+    /**
+     * Reset macro processor to initial state.
+     */
     private void resetMacroProcessor() {
         this.macroTable.clear();
         this.inputLines.clear();

@@ -1,5 +1,12 @@
-oi macrodef
-	add ax, 3
+#oi macrodef x
+	add ax, x
+	sub ax, x
 endm
 
-callm oi
+callm oi 1
+
+oi macrodef x
+	and ax, x
+endm
+
+callm oi 12

@@ -1,0 +1,3 @@
+add ax, 1
+sub ax, 1
+and ax, 12
