@@ -40,6 +40,7 @@ public class Logger {
 
     public void reset() {
         logs.clear();
+        this.interrupted = false;
         LogTextArea.getInstance().clearText();
     }
 }

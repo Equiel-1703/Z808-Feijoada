@@ -33,10 +33,20 @@ public class MacroProcessor {
     private static final String MACROEND = "ENDM";
     private static final String MACROCALL = "CALLM";
 
-    public MacroProcessor() {
+    // Singleton stuff
+    private static MacroProcessor instance = null;
+
+    private MacroProcessor() {
         macroTable = new HashMap<>();
         inputLines = new LinkedList<>();
         outputLines = new LinkedList<>();
+    }
+
+    public static MacroProcessor getInstance() {
+        if (instance == null) {
+            instance = new MacroProcessor();
+        }
+        return instance;
     }
 
     /**
@@ -91,15 +101,15 @@ public class MacroProcessor {
                 // Get next line
                 currentLine = inputLines.isEmpty() ? "" : inputLines.pop();
             }
-        } catch (
-                IOException e) {
+        } catch (IOException e) {
             Logger.getInstance().addLog(new Log(LogType.ERROR, lineCounter, "Error while reading " + pathToProgram + "file: " + e.getMessage()));
+            Logger.getInstance().printLogs();
             resetMacroProcessor();
             throw e;
-        } catch (
-                Exception e) {
+        } catch (Exception e) {
             resetMacroProcessor();
-            throw e;
+            Logger.getInstance().printLogs();
+            throw new MacroProcessorError();
         }
 
         // Removes ".asm" extension and append ".pre"
@@ -117,18 +127,16 @@ public class MacroProcessor {
             Logger.getInstance().addLog(new Log(LogType.ERROR, lineCounter, "Error while writing " + pathToProgram + "file: " + e.getMessage()));
             Logger.getInstance().printLogs();
             resetMacroProcessor();
+            throw e;
         } finally {
             outputStream.close();
             dataOutStream.close();
+            resetMacroProcessor();
         }
 
         // Log success message
-        Logger.getInstance().
-
-                addLog(new Log(LogType.INFO, 0, "Macros expanded!"));
-        Logger.getInstance().
-
-                printLogs();
+        Logger.getInstance().addLog(new Log(LogType.INFO, 0, "Macros expanded!"));
+        Logger.getInstance().printLogs();
 
         return pathToProgram;
     }
@@ -156,8 +164,7 @@ public class MacroProcessor {
         // Validate name if this macro was defined by user (it will be named by user if it's not already in macro table)
         if (!macroTable.containsKey(outerMacroName) && !MacroUtils.isValidMacroName(outerMacroName)) {
             Logger.getInstance().addLog(new Log(LogType.ERROR, lineCounter, "INVALID MACRO NAME: " + outerMacroName));
-            resetMacroProcessor();
-            throw new IllegalArgumentException();
+            throw new MacroProcessorError();
         }
 
         // Get formal parameters if they exist
@@ -183,7 +190,7 @@ public class MacroProcessor {
                     if (!MacroUtils.isValidMacroName(tokens[0])) {
                         Logger.getInstance().addLog(new Log(LogType.ERROR, lineCounter, "INVALID MACRO NAME: " + tokens[0]));
                         resetMacroProcessor();
-                        throw new IllegalArgumentException();
+                        throw new MacroProcessorError();
                     }
 
                     // Rename nested macro
@@ -241,6 +248,8 @@ public class MacroProcessor {
 
                 if (currentMacroNestLevel == 0) {
                     break;
+                } else {
+                    macroCode.add(currentLine);
                 }
             }
             // No nested macro declaration, call or end macro. Just regular code
@@ -294,6 +303,10 @@ public class MacroProcessor {
                 Logger.getInstance().addLog(new Log(LogType.ERROR, lineCounter, e.getMessage() + " IN: \"" + currentLine + "\""));
                 resetMacroProcessor();
                 throw e;
+            } catch (UndeclaredMacro e) {
+                Logger.getInstance().addLog(new Log(LogType.ERROR, lineCounter, e.getMessage()));
+                resetMacroProcessor();
+                throw e;
             }
 
             // Add expanded code in input lines to be processed when back to MODE 1
@@ -310,7 +323,6 @@ public class MacroProcessor {
                 message = "MACRO NOT FOUND: ";
 
             Logger.getInstance().addLog(new Log(LogType.ERROR, lineCounter, message + macroName));
-            resetMacroProcessor();
             throw new UndeclaredMacro(macroName);
         }
     }

@@ -1,12 +1,13 @@
-#oi macrodef x
+.code segment
+oi macrodef x
 	add ax, x
-	sub ax, x
+	add ax, x
 endm
 
 callm oi 1
 
 oi macrodef x
-	and ax, x
+	sub ax, x
 endm
 
-callm oi 12
+callm oi 2

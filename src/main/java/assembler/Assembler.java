@@ -18,7 +18,6 @@ public class Assembler {
     private final LabelProcessor labelProcessor = new LabelProcessor();
     private final DirectiveProcessor directiveProcessor = new DirectiveProcessor();
     private final OperationProcessor operationProcessor = new OperationProcessor();
-    private final MacroProcessor macroProcessor = new MacroProcessor();
 
     // Assembled code
     private final LinkedList<Short> assembledCode = new LinkedList<>();
@@ -56,16 +55,6 @@ public class Assembler {
     }
 
     public void assembleFile(String pathToProgram) throws Exception {
-        try {
-            // Handling macros and returns intermediate file path to new file soo we do not change user one
-            pathToProgram = macroProcessor.parseMacros(pathToProgram);
-        } catch (Exception e) {
-            Logger.getInstance().addLog(new Log(LogType.ERROR, lineCounter, "ERROR ON MACRO PROCESSOR\n"));
-            Logger.getInstance().printLogs();
-            resetAssembler();
-            return;
-        }
-
         FileReader fileReader = new FileReader(pathToProgram);
         Logger.getInstance().reset();
 
@@ -139,7 +128,7 @@ public class Assembler {
             dsEnd = dsStart + assembledData.size() - 1;
         }
 
-        // Removes ".asm" extension and append ".bin"
+        // Removes last extension and append ".bin"
         pathToProgram = pathToProgram.substring(0, pathToProgram.length() - 4);
         pathToProgram += ".bin";
 

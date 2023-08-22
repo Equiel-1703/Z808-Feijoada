@@ -3,6 +3,7 @@ package macroprocessor.entities;
 import assembler.Log;
 import assembler.LogType;
 import assembler.Logger;
+import macroprocessor.UndeclaredMacro;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -51,7 +52,11 @@ public class Macro {
      * @param realParameters an ArrayList containing the real parameters to replace in the code
      * @return a LinkedList containing the expanded code
      */
-    public LinkedList<String> processRealParameters(ArrayList<String> realParameters) {
+    public LinkedList<String> processRealParameters(ArrayList<String> realParameters) throws UndeclaredMacro {
+        if (macroCode.isEmpty()) {
+            throw new UndeclaredMacro(this.macroName);
+        }
+
         // Validate parameters
         if (realParameters.size() != formalParameters.size()) {
             throw new IllegalArgumentException("INVALID PARAMETERS FOR MACRO " + macroName);

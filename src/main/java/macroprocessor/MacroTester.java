@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 
 public class MacroTester {
     public static void main(String[] args) {
-        MacroProcessor macroProcessor = new MacroProcessor();
+        MacroProcessor macroProcessor = MacroProcessor.getInstance();
         try {
             var outpath = macroProcessor.parseMacros("src\\programs\\macrotest.asm");
             System.out.println("Output file: " + outpath);

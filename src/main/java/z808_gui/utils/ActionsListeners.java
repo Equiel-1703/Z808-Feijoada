@@ -1,6 +1,8 @@
 package z808_gui.utils;
 
 import assembler.Assembler;
+import assembler.Logger;
+import macroprocessor.MacroProcessor;
 import virtual_machine.VirtualMachine;
 import z808_gui.components.AssemblyTextArea;
 import z808_gui.components.Tabs;
@@ -85,13 +87,19 @@ public class ActionsListeners {
     public ActionListener getMontarAL() {
         if (montarAL == null) {
             montarAL = e -> {
+                Logger.getInstance().reset();
+
                 // Save file
                 getSaveAL().actionPerformed(e);
+
+                // Process macros
+                MacroProcessor macroProcessor = MacroProcessor.getInstance();
 
                 // Then assemble
                 Assembler assembler = Assembler.getInstance();
                 try {
-                    assembler.assembleFile(PROGRAM_PATH);
+                    String processedCodePath = macroProcessor.parseMacros(PROGRAM_PATH);
+                    assembler.assembleFile(processedCodePath);
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, "ERRO: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE, null);
                 }
